@@ -1,0 +1,51 @@
+import socket
+import threading
+# basic stresseria did rames ar elodo 
+def send_request_to_minecraft_server(server_ip, server_port):
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    try:
+
+        sock.connect((server_ip, server_port))
+
+        # 0x00 (protocol version) + 4 bytes (server address length) + server address + 2 bytes (server port) + 1 byte (next state)
+        protocol_version = 0x00
+        server_address_length = len(server_ip)
+        server_port_bytes = server_port.to_bytes(2, byteorder='big')
+        next_state = 0x01  # 0x01 for status
+
+        handshake_packet = (
+            protocol_version.to_bytes(1, byteorder='big') +
+            server_address_length.to_bytes(4, byteorder='big') +
+            server_ip.encode('utf-8') +
+            server_port_bytes +
+            next_state.to_bytes(1, byteorder='big')
+        )
+
+        sock.sendall(handshake_packet)
+
+        # Receive the response
+        response = sock.recv(1024)
+        print("Response from server:", response)
+
+    except Exception as e:
+        print("Error:", e)
+
+    finally:
+        sock.close()
+
+def stress_test(server_ip, server_port, num_requests):
+    threads = []
+    for _ in range(num_requests):
+        thread = threading.Thread(target=send_request_to_minecraft_server, args=(server_ip, server_port))
+        threads.append(thread)
+        thread.start()
+
+    for thread in threads:
+        thread.join()
+
+server_ip = '127.0.0.1'# Server IP HERE
+server_port = 25565 # PORT HERE 
+num_requests = 10  # How Much Requests
+stress_test(server_ip, server_port, num_requests)
